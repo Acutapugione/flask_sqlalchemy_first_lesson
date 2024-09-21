@@ -20,11 +20,11 @@ def main():
         session.add(teacher)
 
     with Config.SESSION.begin() as session:
-        sql_query = (
-            select(Lesson.timestamp)
-            .join(User, User.id == Lesson.teacher_id)
-            .where(User.login.like(r"%acuta%"))
-        )
+        # sql_query = (
+        #     select(Lesson.timestamp)
+        #     .join(User, User.id == Lesson.teacher_id)
+        #     .where(User.login.like(r"%acuta%"))
+        # )
         result = session.scalars(
             select(User).where(User.login.like(r"%acuta%"))
         ).first()
