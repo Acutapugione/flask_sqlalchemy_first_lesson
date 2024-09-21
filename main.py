@@ -1,45 +1,36 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import (
-    DeclarativeBase,
-    declared_attr,
-    Mapped,
-    mapped_column,
-    sessionmaker,
-)
-
-
-class Base(DeclarativeBase):
-    id: Mapped[int] = mapped_column(primary_key=True)
-
-    @declared_attr.directive
-    def __tablename__(cls) -> str:
-        return f"{cls.__name__}".lower()
-
-
-class User(Base):
-    login: Mapped[str]
-    password: Mapped[str]
-
-
-class Config:
-    ENGINE = create_engine("sqlite://", echo=True)
-    BASE = Base
-    SESSION = sessionmaker(bind=ENGINE)
-
-    @classmethod
-    def up(cls):
-        cls.BASE.metadata.create_all(cls.ENGINE)
-
-    @classmethod
-    def down(cls):
-        cls.BASE.metadata.drop_all(cls.ENGINE)
+from datetime import datetime
+from sqlalchemy import select
+from db import Config, User, Lesson
 
 
 def main():
+    Config.down()  # Comment for production
     Config.up()
-    user = User(login="Acuta", password="Acuta")
+    teacher = User(login="acutapugione", password="Acuta")
+    teacher.lessons.extend(
+        [
+            Lesson(
+                topic="Python Flask: Основи роботи з БД. СУБД",
+                timestamp=datetime.now(),
+            )
+            for x in range(10)
+        ]
+    )
     with Config.SESSION.begin() as session:
-        session.add(user)
+        session.add(teacher)
+
+    with Config.SESSION.begin() as session:
+        sql_query = (
+            select(Lesson.timestamp)
+            .join(User, User.id == Lesson.teacher_id)
+            .where(User.login.like(r"%acuta%"))
+        )
+        result = session.scalars(
+            select(User).where(User.login.like(r"%acuta%"))
+        ).first()
+        print(f"{result=}")
+        if result:
+            print(f"{[lesson.timestamp for lesson in result.lessons]}")
 
 
 if __name__ == "__main__":
